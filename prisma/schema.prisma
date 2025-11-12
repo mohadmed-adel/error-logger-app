@@ -1,0 +1,37 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String  @id @default(cuid())
+  email    String  @unique
+  password String
+  name     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Error {
+  id            String   @id @default(cuid())
+  message       String
+  stack         String?
+  level         String   @default("error") // error, warning, info
+  metadata      String? // JSON string for additional data (list of maps)
+  serverUrl     String?
+  userId        String
+  userSecretKey String?
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([serverUrl])
+}

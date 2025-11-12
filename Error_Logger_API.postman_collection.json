@@ -1,0 +1,68 @@
+{
+  "info": {
+    "_postman_id": "error-logger-api-collection",
+    "name": "Error Logger API",
+    "description": "API collection for Error Logger application. Public endpoint for creating error logs - no authentication required.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "error-logger"
+  },
+  "item": [
+    {
+      "name": "Create Error",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Error message\",\n  \"stack\": \"Error: Stack trace\\n    at Function.error (/app/logger.js:45:10)\",\n  \"level\": \"error\",\n  \"serverUrl\": \"https://example.com\",\n  \"userSecretKey\": \"{{user_secret_key}}\",\n  \"metadata\": {\n    \"service\": \"my-service\",\n    \"version\": \"1.0.0\",\n    \"environment\": \"production\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/errors/public",
+          "host": ["{{base_url}}"],
+          "path": ["api", "errors", "public"]
+        },
+        "description": "Create error log - No authentication required. userSecretKey is optional. If userSecretKey is provided, associates error with user; if not, creates anonymous error."
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "user_secret_key",
+      "value": "",
+      "type": "string",
+      "description": "User Secret Key (optional) - include in request body to associate error with user"
+    }
+  ]
+}

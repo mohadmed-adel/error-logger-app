@@ -1,65 +1,325 @@
-import Image from "next/image";
+'use client';
+
+import { useEffect, useState, useCallback } from 'react';
+
+interface ErrorLog {
+  id: string;
+  message: string;
+  stack: string | null;
+  level: 'error' | 'warning' | 'info';
+  metadata: string | null;
+  serverUrl: string | null;
+  userId: string;
+  userSecretKey: string | null;
+  createdAt: string;
+}
 
 export default function Home() {
+  const [errors, setErrors] = useState<ErrorLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'error' | 'warning' | 'info'>('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [serverUrlFilter, setServerUrlFilter] = useState('');
+  const [userIdFilter, setUserIdFilter] = useState('');
+
+  const fetchErrors = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      
+      const level = filter === 'all' ? '' : filter;
+      if (level) params.append('level', level);
+      
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      if (serverUrlFilter) params.append('serverUrl', serverUrlFilter);
+      if (userIdFilter) params.append('userId', userIdFilter);
+      
+      params.append('limit', '20');
+      
+      const url = `/api/errors/public?${params.toString()}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      if (response.ok) {
+        setErrors(data.errors || []);
+      }
+    } catch (error) {
+      console.error('Error fetching errors:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [filter, startDate, endDate, serverUrlFilter, userIdFilter]);
+
+  useEffect(() => {
+    fetchErrors();
+    // Refresh errors every 5 seconds
+    const interval = setInterval(fetchErrors, 5000);
+    return () => clearInterval(interval);
+  }, [fetchErrors]);
+
+  const clearFilters = () => {
+    setFilter('all');
+    setStartDate('');
+    setEndDate('');
+    setServerUrlFilter('');
+    setUserIdFilter('');
+  };
+
+  const getLevelColor = (level: string) => {
+    switch (level) {
+      case 'error':
+        return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 border-red-300 dark:border-red-700';
+      case 'warning':
+        return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700';
+      case 'info':
+        return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700';
+      default:
+        return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-700';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString();
+  };
+
+  const parseMetadata = (metadata: string | null) => {
+    if (!metadata) return null;
+    try {
+      return JSON.parse(metadata);
+    } catch {
+      return metadata;
+    }
+  };
+
+  const formatMetadata = (metadata: string | null) => {
+    const parsed = parseMetadata(metadata);
+    if (!parsed) return null;
+    return JSON.stringify(parsed, null, 2);
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="min-h-screen bg-zinc-50 dark:bg-black">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="text-center mb-8">
+          <h1 className="text-5xl font-bold mb-4 text-black dark:text-zinc-50">
+            Error Logger API
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-xl text-zinc-600 dark:text-zinc-400 mb-2">
+            Public API for logging application errors
+          </p>
+          <p className="text-lg text-zinc-500 dark:text-zinc-500">
+            No authentication required - simply POST your errors
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* API Info Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-6 sticky top-4">
+              <h2 className="text-2xl font-semibold mb-4 text-black dark:text-zinc-50">
+                API Endpoint
+              </h2>
+              <div className="bg-zinc-100 dark:bg-zinc-800 rounded p-4 mb-4">
+                <code className="text-sm text-black dark:text-zinc-50">
+                  POST /api/errors/public
+                </code>
+              </div>
+              <p className="text-zinc-600 dark:text-zinc-400 mb-4 text-sm">
+                Send error logs to this endpoint. User Secret Key is optional.
+              </p>
+              <div className="bg-zinc-50 dark:bg-zinc-950 rounded p-4 mb-6">
+                <pre className="text-xs text-zinc-700 dark:text-zinc-300 overflow-x-auto">
+{`{
+  "message": "Error message",
+  "level": "error",
+  "serverUrl": "https://example.com",
+  "userSecretKey": "optional",
+  "metadata": {}
+}`}
+                </pre>
+              </div>
+              <div className="space-y-3 text-sm">
+                <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded">
+                  <h3 className="font-semibold mb-1 text-black dark:text-zinc-50">Public API</h3>
+                  <p className="text-zinc-600 dark:text-zinc-400">No authentication required</p>
+                </div>
+                <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded">
+                  <h3 className="font-semibold mb-1 text-black dark:text-zinc-50">Optional Secret Key</h3>
+                  <p className="text-zinc-600 dark:text-zinc-400">Associate with user or anonymous</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Errors List */}
+          <div className="lg:col-span-2">
+            <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-semibold text-black dark:text-zinc-50">
+                  Recent Errors
+                </h2>
+                <select
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value as any)}
+                  className="px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-zinc-800 text-black dark:text-zinc-50"
+                >
+                  <option value="all">All</option>
+                  <option value="error">Errors</option>
+                  <option value="warning">Warnings</option>
+                  <option value="info">Info</option>
+                </select>
+              </div>
+
+              {/* Filters Section */}
+              <div className="mb-6 p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-black dark:text-zinc-50">Filters</h3>
+                  {(startDate || endDate || serverUrlFilter || userIdFilter) && (
+                    <button
+                      onClick={clearFilters}
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      Clear Filters
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium mb-1 text-zinc-700 dark:text-zinc-300">
+                      Start Date
+                    </label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-zinc-900 text-black dark:text-zinc-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1 text-zinc-700 dark:text-zinc-300">
+                      End Date
+                    </label>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-zinc-900 text-black dark:text-zinc-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1 text-zinc-700 dark:text-zinc-300">
+                      Server URL
+                    </label>
+                    <input
+                      type="text"
+                      value={serverUrlFilter}
+                      onChange={(e) => setServerUrlFilter(e.target.value)}
+                      placeholder="Filter by server URL"
+                      className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-zinc-900 text-black dark:text-zinc-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1 text-zinc-700 dark:text-zinc-300">
+                      User ID
+                    </label>
+                    <input
+                      type="text"
+                      value={userIdFilter}
+                      onChange={(e) => setUserIdFilter(e.target.value)}
+                      placeholder="Filter by user ID"
+                      className="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-zinc-900 text-black dark:text-zinc-50 font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {loading ? (
+                <div className="text-center py-8 text-zinc-600 dark:text-zinc-400">
+                  Loading...
+                </div>
+              ) : errors.length === 0 ? (
+                <div className="text-center py-8 text-zinc-600 dark:text-zinc-400">
+                  No errors found. Start logging errors using the API endpoint!
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {errors.map((error) => (
+                    <div
+                      key={error.id}
+                      className={`border rounded-lg p-4 ${getLevelColor(error.level)}`}
+                    >
+                      <div className="flex-1">
+                        {/* Header with Level and Date */}
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold capitalize">{error.level}</span>
+                            <span className="text-xs opacity-75">
+                              {formatDate(error.createdAt)}
+                            </span>
+                          </div>
+                          <span className="text-xs opacity-60 font-mono">ID: {error.id}</span>
+                        </div>
+
+                        {/* Error Message */}
+                        <p className="font-medium mb-3 text-base">{error.message}</p>
+
+                        {/* Error Details Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3 text-xs">
+                          {error.serverUrl && (
+                            <div>
+                              <span className="opacity-75 font-semibold">Server URL: </span>
+                              <a
+                                href={error.serverUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 dark:text-blue-400 hover:underline break-all"
+                              >
+                                {error.serverUrl}
+                              </a>
+                            </div>
+                          )}
+                          {error.userSecretKey && (
+                            <div>
+                              <span className="opacity-75 font-semibold">User Secret Key: </span>
+                              <span className="font-mono break-all">{error.userSecretKey}</span>
+                            </div>
+                          )}
+                          <div>
+                            <span className="opacity-75 font-semibold">User ID: </span>
+                            <span className="font-mono">{error.userId}</span>
+                          </div>
+                        </div>
+
+                        {/* Stack Trace */}
+                        {error.stack && (
+                          <div className="mb-2">
+                            <div className="text-xs font-semibold mb-1 opacity-75">Stack Trace:</div>
+                            <pre className="text-xs bg-black/10 dark:bg-white/10 p-3 rounded overflow-x-auto font-mono">
+                              {error.stack}
+                            </pre>
+                          </div>
+                        )}
+
+                        {/* Metadata */}
+                        {error.metadata && (
+                          <div className="mt-2">
+                            <div className="text-xs font-semibold mb-1 opacity-75">Metadata:</div>
+                            <pre className="text-xs bg-black/10 dark:bg-white/10 p-3 rounded overflow-x-auto font-mono">
+                              {formatMetadata(error.metadata) || error.metadata}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
