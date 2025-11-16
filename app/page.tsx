@@ -17,6 +17,8 @@ interface ErrorLog {
 export default function Home() {
   const [errors, setErrors] = useState<ErrorLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [clearing, setClearing] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'error' | 'warning' | 'info'>('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -54,9 +56,9 @@ export default function Home() {
 
   useEffect(() => {
     fetchErrors();
-    // Refresh errors every 5 seconds
-    const interval = setInterval(fetchErrors, 5000);
-    return () => clearInterval(interval);
+    // Auto-refresh disabled - user can manually refresh if needed
+    // const interval = setInterval(fetchErrors, 5000);
+    // return () => clearInterval(interval);
   }, [fetchErrors]);
 
   const clearFilters = () => {
@@ -65,6 +67,45 @@ export default function Home() {
     setEndDate('');
     setServerUrlFilter('');
     setUserIdFilter('');
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchErrors();
+    setRefreshing(false);
+  };
+
+  const handleClearAll = async () => {
+    if (!confirm('Are you sure you want to delete ALL error logs? This action cannot be undone.')) {
+      return;
+    }
+
+    setClearing(true);
+    try {
+      const response = await fetch('/api/errors/clear-all', {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setErrors([]);
+        alert(`Successfully cleared ${data.deletedCount} error log(s)`);
+        fetchErrors(); // Refresh the list
+      } else {
+        if (response.status === 401) {
+          alert('Please log in to clear errors. Redirecting to login...');
+          window.location.href = '/login';
+        } else {
+          alert(data.error || 'Failed to clear errors');
+        }
+      }
+    } catch (error) {
+      console.error('Error clearing errors:', error);
+      alert('An error occurred while clearing errors');
+    } finally {
+      setClearing(false);
+    }
   };
 
   const getLevelColor = (level: string) => {
@@ -118,6 +159,24 @@ export default function Home() {
           {/* API Info Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-6 sticky top-4">
+              <div className="flex gap-2 mb-4">
+                <button
+                  onClick={handleRefresh}
+                  disabled={refreshing || loading}
+                  className="flex-1 px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                  title="Refresh error list"
+                >
+                  {refreshing ? 'Refreshing...' : '🔄 Refresh'}
+                </button>
+                <button
+                  onClick={handleClearAll}
+                  disabled={clearing || errors.length === 0 || loading}
+                  className="flex-1 px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                  title={errors.length === 0 ? 'No errors to clear' : 'Clear all error logs'}
+                >
+                  {clearing ? 'Clearing...' : 'Clear All'}
+                </button>
+              </div>
               <h2 className="text-2xl font-semibold mb-4 text-black dark:text-zinc-50">
                 API Endpoint
               </h2>

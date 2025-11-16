@@ -2,13 +2,20 @@
   "name": "error-logger-app",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=18.17.0",
+    "npm": ">=9.0.0"
+  },
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "kill:dart": "./kill-all-dart.sh",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
+    "db:reset": "prisma migrate reset --force --skip-seed",
+    "db:clear": "rm -f prisma/dev.db prisma/dev.db-journal && npm run db:migrate",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts"
   },

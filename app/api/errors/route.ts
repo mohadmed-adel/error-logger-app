@@ -52,4 +52,36 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// DELETE - Clear all errors for the authenticated user
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Delete all errors for the authenticated user
+    const result = await prisma.error.deleteMany({
+      where: {
+        userId: session.user.id,
+      },
+    });
+
+    return NextResponse.json({
+      message: 'All errors cleared successfully',
+      deletedCount: result.count,
+    });
+  } catch (error) {
+    console.error('Error clearing errors:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
 

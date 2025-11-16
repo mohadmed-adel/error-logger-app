@@ -19,6 +19,7 @@ export default function DashboardPage() {
   const [errors, setErrors] = useState<ErrorLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'error' | 'warning' | 'info'>('all');
   const [formData, setFormData] = useState({
     message: '',
@@ -107,6 +108,33 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('Error deleting error:', error);
       alert('An error occurred');
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (!confirm('Are you sure you want to delete ALL error logs? This action cannot be undone.')) {
+      return;
+    }
+
+    setClearing(true);
+    try {
+      const response = await fetch('/api/errors', {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setErrors([]);
+        alert(`Successfully cleared ${data.deletedCount} error log(s)`);
+      } else {
+        alert(data.error || 'Failed to clear errors');
+      }
+    } catch (error) {
+      console.error('Error clearing errors:', error);
+      alert('An error occurred while clearing errors');
+    } finally {
+      setClearing(false);
     }
   };
 
@@ -242,16 +270,26 @@ export default function DashboardPage() {
                 <h2 className="text-xl font-semibold text-black dark:text-zinc-50">
                   Error Logs
                 </h2>
-                <select
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value as any)}
-                  className="px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-zinc-800 text-black dark:text-zinc-50"
-                >
-                  <option value="all">All</option>
-                  <option value="error">Errors</option>
-                  <option value="warning">Warnings</option>
-                  <option value="info">Info</option>
-                </select>
+                <div className="flex gap-2">
+                  <select
+                    value={filter}
+                    onChange={(e) => setFilter(e.target.value as any)}
+                    className="px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-zinc-800 text-black dark:text-zinc-50"
+                  >
+                    <option value="all">All</option>
+                    <option value="error">Errors</option>
+                    <option value="warning">Warnings</option>
+                    <option value="info">Info</option>
+                  </select>
+                  <button
+                    onClick={handleClearAll}
+                    disabled={clearing || errors.length === 0 || loading}
+                    className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                    title={errors.length === 0 ? 'No errors to clear' : 'Clear all error logs'}
+                  >
+                    {clearing ? 'Clearing...' : 'Clear All'}
+                  </button>
+                </div>
               </div>
 
               {loading ? (
