@@ -56,10 +56,13 @@ All error endpoints require authentication. Once logged in, cookies are automati
 
 - **POST** `/api/errors/public` - Create new error (PUBLIC - no authentication required)
 
-  - Required: `message`
+  - Required: `message`, `userId`
   - Optional: `stack`, `level`, `serverUrl`, `metadata`, `userSecretKey`
-  - If `userSecretKey` is provided, associates error with user
-  - If `userSecretKey` is not provided, creates anonymous error
+  - `userId` can be either:
+    - A user ID (CUID format, e.g., `cmi1j87se0000uhmgdfdmxyfw`)
+    - An email address (e.g., `user@example.com`)
+  - The API will look up the user by ID first, then by email if not found
+  - `userSecretKey` is optional and can be used as an additional identifier
   - **This is the ONLY endpoint for creating errors**
 
 - **GET** `/api/errors` - Get all errors (requires authentication, supports query params)
@@ -80,6 +83,7 @@ All error endpoints require authentication. Once logged in, cookies are automati
 ```json
 {
   "message": "Database connection failed",
+  "userId": "clx1234567890abcdef",
   "stack": "Error: Connection timeout\n    at Database.connect (/app/db.js:45:10)",
   "level": "error",
   "serverUrl": "https://api.example.com",
@@ -96,7 +100,8 @@ All error endpoints require authentication. Once logged in, cookies are automati
 
 ```json
 {
-  "message": "Simple error message"
+  "message": "Simple error message",
+  "userId": "clx1234567890abcdef"
 }
 ```
 
@@ -105,6 +110,7 @@ All error endpoints require authentication. Once logged in, cookies are automati
 ```json
 {
   "message": "High memory usage detected",
+  "userId": "clx1234567890abcdef",
   "level": "warning",
   "serverUrl": "https://server.example.com",
   "metadata": {
@@ -114,11 +120,12 @@ All error endpoints require authentication. Once logged in, cookies are automati
 }
 ```
 
-### Create Error - Public Endpoint (No Auth)
+### Create Error - Public Endpoint (With userSecretKey)
 
 ```json
 {
   "message": "Error from external service",
+  "userId": "clx1234567890abcdef",
   "level": "error",
   "serverUrl": "https://external-service.com",
   "userSecretKey": "your-user-secret-key-here",
@@ -129,11 +136,12 @@ All error endpoints require authentication. Once logged in, cookies are automati
 }
 ```
 
-### Create Error - Public Endpoint (Anonymous)
+### Create Error - Public Endpoint (Minimal)
 
 ```json
 {
-  "message": "Anonymous error from external service",
+  "message": "Error from external service",
+  "userId": "clx1234567890abcdef",
   "level": "error",
   "serverUrl": "https://external-service.com"
 }
@@ -142,13 +150,16 @@ All error endpoints require authentication. Once logged in, cookies are automati
 ## Testing Workflow
 
 1. **Start your server**: `npm run dev`
-2. **Create an error**: Use the "Create Error" request (no authentication needed)
-   - You can include a `userSecretKey` in the request body to associate with a user
-   - Or omit the userSecretKey to create an anonymous error
-3. **Login** (optional): Run the Login request to view errors in dashboard (use default credentials: `admin@aictime.com` / `admin123`)
-4. **Get all errors**: Run "Get All Errors" to see your created errors (requires authentication)
-5. **Get specific error**: Copy an error ID from the response and use it in "Get Error by ID"
-6. **Delete error**: Use the error ID in "Delete Error" request
+2. **Get a User ID or Email**: You need either:
+   - A user ID (CUID format like `cmi1j87se0000uhmgdfdmxyfw`) - get from database or session
+   - An email address (e.g., `admin@aictime.com`) - easier to use!
+3. **Create an error**: Use the "Create Error" request (no authentication needed)
+   - **Required**: `message` and `userId` (can be user ID or email address)
+   - Optional: `userSecretKey`, `stack`, `level`, `serverUrl`, `metadata`
+4. **Login** (optional): Run the Login request to view errors in dashboard (use default credentials: `admin@aictime.com` / `admin123`)
+5. **Get all errors**: Run "Get All Errors" to see your created errors (requires authentication)
+6. **Get specific error**: Copy an error ID from the response and use it in "Get Error by ID"
+7. **Delete error**: Use the error ID in "Delete Error" request
 
 ## Troubleshooting
 
@@ -172,8 +183,11 @@ All error endpoints require authentication. Once logged in, cookies are automati
 
 ## Notes
 
-- All error endpoints require authentication
-- Errors are scoped to the authenticated user
+- Creating errors via `/api/errors/public` does NOT require authentication
+- Viewing/deleting errors via `/api/errors` requires authentication
+- `userId` is REQUIRED when creating errors - must be a valid user ID
+- `userSecretKey` is optional and can be used as an additional identifier
+- Errors are scoped to the `userId` provided
 - The `metadata` field accepts any JSON object (will be stringified)
 - Error levels must be: `error`, `warning`, or `info`
 - Server URL should be a valid URL format

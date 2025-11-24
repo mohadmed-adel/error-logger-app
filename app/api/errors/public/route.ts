@@ -79,15 +79,23 @@ export async function GET(request: NextRequest) {
 }
 
 // POST - Create a new error log (Public endpoint - no authentication required)
+// userId is required - accepts any string value
 // userSecretKey is optional - stored directly on the error
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, stack, level = 'error', metadata, serverUrl, userSecretKey } = body;
+    const { message, stack, level = 'error', metadata, serverUrl, userSecretKey, userId } = body;
 
     if (!message) {
       return NextResponse.json(
         { error: 'Message is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'userId is required' },
         { status: 400 }
       );
     }
@@ -97,24 +105,6 @@ export async function POST(request: NextRequest) {
         { error: 'Level must be error, warning, or info' },
         { status: 400 }
       );
-    }
-
-    // Find or create an anonymous system user for userId
-    let anonymousUser = await prisma.user.findFirst({
-      where: { email: 'anonymous@system.local' },
-      select: { id: true },
-    });
-
-    if (!anonymousUser) {
-      // Create anonymous user if it doesn't exist
-      anonymousUser = await prisma.user.create({
-        data: {
-          email: 'anonymous@system.local',
-          password: await bcrypt.hash('system-user-' + Date.now(), 10),
-          name: 'Anonymous System User',
-        },
-        select: { id: true },
-      });
     }
 
     // Create error log with userSecretKey stored directly on the error
@@ -128,7 +118,7 @@ export async function POST(request: NextRequest) {
         // @ts-ignore - serverUrl field exists in schema
         serverUrl: serverUrl || null,
         userSecretKey: userSecretKey || null,
-        userId: anonymousUser.id,
+        userId: String(userId), // Ensure userId is a string
       },
     });
 

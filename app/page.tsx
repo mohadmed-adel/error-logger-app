@@ -186,12 +186,13 @@ export default function Home() {
                 </code>
               </div>
               <p className="text-zinc-600 dark:text-zinc-400 mb-4 text-sm">
-                Send error logs to this endpoint. User Secret Key is optional.
+                Send error logs to this endpoint. User ID or email is required.
               </p>
               <div className="bg-zinc-50 dark:bg-zinc-950 rounded p-4 mb-6">
                 <pre className="text-xs text-zinc-700 dark:text-zinc-300 overflow-x-auto">
 {`{
   "message": "Error message",
+  "userId": "user@example.com",
   "level": "error",
   "serverUrl": "https://example.com",
   "userSecretKey": "optional",
@@ -205,8 +206,12 @@ export default function Home() {
                   <p className="text-zinc-600 dark:text-zinc-400">No authentication required</p>
                 </div>
                 <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded">
-                  <h3 className="font-semibold mb-1 text-black dark:text-zinc-50">Optional Secret Key</h3>
-                  <p className="text-zinc-600 dark:text-zinc-400">Associate with user or anonymous</p>
+                  <h3 className="font-semibold mb-1 text-black dark:text-zinc-50">Required: userId</h3>
+                  <p className="text-zinc-600 dark:text-zinc-400">User ID (CUID) or email address</p>
+                </div>
+                <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded">
+                  <h3 className="font-semibold mb-1 text-black dark:text-zinc-50">Optional: userSecretKey</h3>
+                  <p className="text-zinc-600 dark:text-zinc-400">Additional identifier for the user</p>
                 </div>
               </div>
             </div>
