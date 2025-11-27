@@ -69,10 +69,20 @@ export async function GET(request: NextRequest) {
       limit,
       offset,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching errors:', error);
+    
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const errorMessage = error?.message || 'Unknown error';
+    const errorName = error?.name || 'Error';
+    
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        message: isDevelopment ? errorMessage : 'An error occurred while fetching errors',
+        type: errorName,
+        ...(isDevelopment && error?.stack && { stack: error.stack })
+      },
       { status: 500 }
     );
   }
@@ -83,7 +93,15 @@ export async function GET(request: NextRequest) {
 // userSecretKey is optional - stored directly on the error
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
     const { message, stack, level = 'error', metadata, serverUrl, userSecretKey, userId } = body;
 
     if (!message) {
@@ -123,10 +141,76 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(error, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating error log:', error);
+    
+    // Return detailed error information for debugging
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    
+    // Extract error information
+    const errorMessage = error?.message || 'Unknown error';
+    const errorName = error?.name || 'Error';
+    const errorCode = error?.code || error?.errorCode;
+    
+    // For Prisma errors, provide more context
+    if (error?.code === 'P2002') {
+      return NextResponse.json(
+        { 
+          error: 'Database constraint violation',
+          details: isDevelopment ? errorMessage : 'A record with this value already exists',
+          code: errorCode
+        },
+        { status: 409 }
+      );
+    }
+    
+    if (error?.code === 'P2025') {
+      return NextResponse.json(
+        { 
+          error: 'Record not found',
+          details: isDevelopment ? errorMessage : 'The requested record does not exist',
+          code: errorCode
+        },
+        { status: 404 }
+      );
+    }
+    
+    // Handle Prisma connection errors
+    if (error?.name === 'PrismaClientInitializationError' || error?.code === 'P1001') {
+      return NextResponse.json(
+        { 
+          error: 'Database connection error',
+          message: isDevelopment ? errorMessage : 'Unable to connect to the database. Please check your database configuration.',
+          type: errorName,
+          code: errorCode
+        },
+        { status: 503 }
+      );
+    }
+    
+    // Handle Prisma validation errors
+    if (error?.code?.startsWith('P1') || error?.name?.includes('Prisma')) {
+      return NextResponse.json(
+        { 
+          error: 'Database error',
+          message: isDevelopment ? errorMessage : 'A database error occurred',
+          type: errorName,
+          code: errorCode
+        },
+        { status: 500 }
+      );
+    }
+    
+    // Return detailed error in development, sanitized in production
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        message: isDevelopment ? errorMessage : 'An error occurred while creating the error log',
+        type: errorName,
+        code: isDevelopment ? errorCode : undefined,
+        // Include stack trace only in development
+        ...(isDevelopment && error?.stack && { stack: error.stack })
+      },
       { status: 500 }
     );
   }
