@@ -1,0 +1,23 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "18.17.0"
+  NPM_VERSION = "9.0.0"
+
+# Next.js configuration for Netlify
+# The plugin automatically handles routing, serverless functions, and optimizations
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Headers for API routes (CORS)
+# These complement the CORS settings in next.config.ts
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+    Access-Control-Max-Age = "86400"
+

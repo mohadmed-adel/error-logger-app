@@ -8,22 +8,25 @@
   },
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "next build",
+    "build": "prisma generate && next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "kill:dart": "./kill-all-dart.sh",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
     "db:reset": "prisma migrate reset --force --skip-seed",
     "db:clear": "rm -f prisma/dev.db prisma/dev.db-journal && npm run db:migrate",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
-    "test:geofence": "tsx scripts/test-geofence-errors.ts"
+    "test:geofence": "tsx scripts/test-geofence-errors.ts",
+    "postinstall": "prisma generate"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@libsql/client": "^0.15.15",
     "@prisma/client": "^6.19.0",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3",

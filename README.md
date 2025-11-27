@@ -215,6 +215,35 @@ npm run build
 npm start
 ```
 
+## Deployment
+
+### Netlify Deployment
+
+This app is configured for deployment on Netlify. See [NETLIFY_DEPLOYMENT.md](./NETLIFY_DEPLOYMENT.md) for detailed instructions.
+
+**⚠️ Important**: SQLite will NOT work on Netlify's serverless platform. You must migrate to a hosted database like:
+
+- **Turso** (SQLite-compatible, recommended)
+- **PostgreSQL** (Supabase, Neon, Railway)
+- **PlanetScale** (MySQL-compatible)
+
+**🚀 Quick Start:**
+
+1. **Get database URL** - See [QUICK_DATABASE_SETUP.md](./QUICK_DATABASE_SETUP.md) (recommended: Turso - 5 minutes)
+2. **Set environment variables** - See [HOW_TO_SET_ENV_VARS.md](./HOW_TO_SET_ENV_VARS.md)
+3. Connect repository to Netlify
+4. Deploy!
+
+**📚 Detailed Guides:**
+
+- [HOW_TO_GET_DATABASE_URL.md](./HOW_TO_GET_DATABASE_URL.md) - Step-by-step database setup for all providers
+- [HOW_TO_SET_ENV_VARS.md](./HOW_TO_SET_ENV_VARS.md) - How to set environment variables
+- [NETLIFY_DEPLOYMENT.md](./NETLIFY_DEPLOYMENT.md) - Complete deployment guide
+
+### Other Deployment Options
+
+For traditional server deployment (Ubuntu, etc.), see [DEPLOYMENT.md](./DEPLOYMENT.md).
+
 ## License
 
 MIT
