@@ -20,30 +20,21 @@ if (databaseUrl.startsWith('file:')) {
     process.exit(1);
   }
 } else if (databaseUrl.startsWith('libsql://')) {
-  // Turso/libSQL - use db push instead of migrate deploy
-  // db push works with libSQL URLs and applies schema changes
-  console.log('Detected Turso/libSQL database, using db push to apply schema...');
-  const { execSync } = require('child_process');
-  try {
-    // Use --accept-data-loss and --skip-generate to avoid prompts in CI/CD
-    // --skip-generate because we already generated the client
-    execSync('npx prisma db push --accept-data-loss --skip-generate', { 
-      stdio: 'inherit',
-      env: { ...process.env, DATABASE_URL: databaseUrl }
-    });
-    console.log('✓ Schema pushed to Turso successfully');
-  } catch (error) {
-    console.error('✗ Schema push failed!');
-    console.error('Error details:', error.message);
-    console.error('');
-    console.error('⚠️  IMPORTANT: Your Turso database schema may not be up to date.');
-    console.error('Please manually apply the schema by running:');
-    console.error('  DATABASE_URL="your-turso-url" npx prisma db push --accept-data-loss');
-    console.error('');
-    console.error('Or use the Turso CLI to apply the schema from prisma/migrations/');
-    // Fail the build so we know the schema wasn't applied
-    process.exit(1);
-  }
+  // Turso/libSQL - Prisma CLI doesn't support libsql:// URLs during build
+  // The CLI validation fails before it can use the adapter
+  // Schema must be applied manually using the apply-turso-schema.js script
+  console.log('Detected Turso/libSQL database.');
+  console.log('⚠️  Note: Prisma CLI tools do not support libsql:// URLs during build.');
+  console.log('Schema must be applied manually before deployment.');
+  console.log('');
+  console.log('To apply schema to Turso, run locally:');
+  console.log('  DATABASE_URL="your-turso-url" npm run db:push:turso');
+  console.log('');
+  console.log('Or use:');
+  console.log('  DATABASE_URL="your-turso-url" node scripts/apply-turso-schema.js');
+  console.log('');
+  console.log('Continuing with build (ensure schema is applied separately)...');
+  // Don't fail the build - schema application is a manual step for Turso
 } else {
   // Unknown database type - warn but continue
   console.warn('⚠ Unknown DATABASE_URL format, skipping migrations.');

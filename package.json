@@ -19,7 +19,7 @@
     "db:clear": "rm -f prisma/dev.db prisma/dev.db-journal && npm run db:migrate",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
-    "db:push:turso": "node scripts/apply-turso-schema.js",
+    "db:push:turso": "node scripts/apply-turso-schema-direct.js",
     "test:geofence": "tsx scripts/test-geofence-errors.ts",
     "postinstall": "prisma generate"
   },
