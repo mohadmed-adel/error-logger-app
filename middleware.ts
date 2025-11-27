@@ -18,8 +18,8 @@ export async function middleware(request: NextRequest) {
     cookies.has('authjs.callback-url') ||
     cookies.has('__Secure-authjs.callback-url');
 
-  // Protect dashboard (still requires auth for viewing)
-  if (pathname.startsWith('/dashboard')) {
+  // Protect root page and dashboard - require login
+  if (pathname === '/' || pathname.startsWith('/dashboard')) {
     if (!hasSession) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('callbackUrl', pathname);
@@ -47,6 +47,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/api/errors', '/login'],
+  matcher: ['/', '/dashboard/:path*', '/api/errors', '/login'],
 };
 

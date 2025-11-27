@@ -4,8 +4,8 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  const defaultEmail = process.env.DEFAULT_USER_EMAIL || 'admin@aictime.com';
-  const defaultPassword = process.env.DEFAULT_USER_PASSWORD || 'admin123';
+  const defaultEmail = process.env.DEFAULT_USER_EMAIL || 'x';
+  const defaultPassword = process.env.DEFAULT_USER_PASSWORD || 'x123456';
 
   // Check if user already exists
   const existingUser = await prisma.user.findUnique({
