@@ -47,55 +47,74 @@ async function applySchema() {
     console.log('\n2. Applying schema...');
 
     // Apply the latest migration schema
-    // This is the schema from the latest migration
-    const schemaSQL = `
--- CreateTable
-CREATE TABLE IF NOT EXISTS "User" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "email" TEXT NOT NULL,
-    "password" TEXT NOT NULL,
-    "name" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
+    // Execute statements in order: tables first, then indexes
+    
+    // Step 1: Create User table
+    console.log('  Creating User table...');
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS "User" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "email" TEXT NOT NULL,
+        "password" TEXT NOT NULL,
+        "name" TEXT,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('  ✓ User table created');
 
--- CreateTable
-CREATE TABLE IF NOT EXISTS "Error" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "message" TEXT NOT NULL,
-    "stack" TEXT,
-    "level" TEXT NOT NULL DEFAULT 'error',
-    "metadata" TEXT,
-    "serverUrl" TEXT,
-    "userId" TEXT NOT NULL,
-    "userSecretKey" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
+    // Step 2: Create Error table
+    console.log('  Creating Error table...');
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS "Error" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "message" TEXT NOT NULL,
+        "stack" TEXT,
+        "level" TEXT NOT NULL DEFAULT 'error',
+        "metadata" TEXT,
+        "serverUrl" TEXT,
+        "userId" TEXT NOT NULL,
+        "userSecretKey" TEXT,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('  ✓ Error table created');
 
--- CreateIndex (only if table doesn't exist)
-CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email");
-CREATE INDEX IF NOT EXISTS "Error_userId_idx" ON "Error"("userId");
-CREATE INDEX IF NOT EXISTS "Error_createdAt_idx" ON "Error"("createdAt");
-CREATE INDEX IF NOT EXISTS "Error_serverUrl_idx" ON "Error"("serverUrl");
-`;
+    // Step 3: Create indexes (after tables exist)
+    console.log('  Creating indexes...');
+    try {
+      await client.execute('CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email")');
+      console.log('  ✓ User email index created');
+    } catch (error) {
+      if (!error.message.includes('already exists')) {
+        console.warn('  ⚠ User email index:', error.message);
+      }
+    }
 
-    // Split by semicolon and execute each statement
-    const statements = schemaSQL
-      .split(';')
-      .map(s => s.trim())
-      .filter(s => s.length > 0 && !s.startsWith('--'));
+    try {
+      await client.execute('CREATE INDEX IF NOT EXISTS "Error_userId_idx" ON "Error"("userId")');
+      console.log('  ✓ Error userId index created');
+    } catch (error) {
+      if (!error.message.includes('already exists')) {
+        console.warn('  ⚠ Error userId index:', error.message);
+      }
+    }
 
-    for (const statement of statements) {
-      if (statement.trim()) {
-        try {
-          await client.execute(statement);
-        } catch (error) {
-          // Ignore "table already exists" or "index already exists" errors
-          if (!error.message.includes('already exists') && !error.message.includes('duplicate')) {
-            console.warn(`Warning executing: ${statement.substring(0, 50)}...`);
-            console.warn(`Error: ${error.message}`);
-          }
-        }
+    try {
+      await client.execute('CREATE INDEX IF NOT EXISTS "Error_createdAt_idx" ON "Error"("createdAt")');
+      console.log('  ✓ Error createdAt index created');
+    } catch (error) {
+      if (!error.message.includes('already exists')) {
+        console.warn('  ⚠ Error createdAt index:', error.message);
+      }
+    }
+
+    try {
+      await client.execute('CREATE INDEX IF NOT EXISTS "Error_serverUrl_idx" ON "Error"("serverUrl")');
+      console.log('  ✓ Error serverUrl index created');
+    } catch (error) {
+      if (!error.message.includes('already exists')) {
+        console.warn('  ⚠ Error serverUrl index:', error.message);
       }
     }
 
