@@ -25,14 +25,24 @@ if (databaseUrl.startsWith('file:')) {
   console.log('Detected Turso/libSQL database, using db push to apply schema...');
   const { execSync } = require('child_process');
   try {
-    // Use --accept-data-loss to avoid prompts in CI/CD
-    execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
+    // Use --accept-data-loss and --skip-generate to avoid prompts in CI/CD
+    // --skip-generate because we already generated the client
+    execSync('npx prisma db push --accept-data-loss --skip-generate', { 
+      stdio: 'inherit',
+      env: { ...process.env, DATABASE_URL: databaseUrl }
+    });
     console.log('✓ Schema pushed to Turso successfully');
   } catch (error) {
-    console.error('✗ Schema push failed:', error.message);
-    console.error('Note: This might be expected if schema is already up to date.');
-    // Don't fail the build if schema push fails (schema might already be correct)
-    console.log('Continuing with build...');
+    console.error('✗ Schema push failed!');
+    console.error('Error details:', error.message);
+    console.error('');
+    console.error('⚠️  IMPORTANT: Your Turso database schema may not be up to date.');
+    console.error('Please manually apply the schema by running:');
+    console.error('  DATABASE_URL="your-turso-url" npx prisma db push --accept-data-loss');
+    console.error('');
+    console.error('Or use the Turso CLI to apply the schema from prisma/migrations/');
+    // Fail the build so we know the schema wasn't applied
+    process.exit(1);
   }
 } else {
   // Unknown database type - warn but continue
