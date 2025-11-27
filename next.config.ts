@@ -130,23 +130,9 @@ const nextConfig: NextConfig = {
       config.module.noParse = /\.md$|\.node$|\.d\.ts$|LICENSE$/i;
     }
     
-    // Externals for server-side only modules (client-side builds)
+    // Externals for client-side builds only
+    // Server-side is handled by serverExternalPackages above
     if (!isServer) {
-      config.externals = config.externals || [];
-      if (Array.isArray(config.externals)) {
-        config.externals.push({
-          '@prisma/adapter-libsql': 'commonjs @prisma/adapter-libsql',
-          '@libsql/client': 'commonjs @libsql/client',
-          '@libsql/hrana-client': 'commonjs @libsql/hrana-client',
-          '@libsql/core': 'commonjs @libsql/core',
-        });
-      } else if (typeof config.externals === 'object') {
-        config.externals['@prisma/adapter-libsql'] = 'commonjs @prisma/adapter-libsql';
-        config.externals['@libsql/client'] = 'commonjs @libsql/client';
-        config.externals['@libsql/hrana-client'] = 'commonjs @libsql/hrana-client';
-        config.externals['@libsql/core'] = 'commonjs @libsql/core';
-      }
-      
       config.resolve = config.resolve || {};
       config.resolve.fallback = {
         ...config.resolve.fallback,
@@ -155,29 +141,6 @@ const nextConfig: NextConfig = {
         '@libsql/hrana-client': false,
         '@libsql/core': false,
       };
-    }
-    
-    // For server-side, also ignore these packages from being bundled
-    // They should be loaded as external dependencies
-    if (isServer) {
-      config.externals = config.externals || [];
-      if (Array.isArray(config.externals)) {
-        config.externals.push('@prisma/adapter-libsql', '@libsql/client');
-      } else if (typeof config.externals === 'function') {
-        const originalExternals = config.externals;
-        config.externals = [
-          originalExternals,
-          (context: any, request: string, callback: any) => {
-            if (request === '@prisma/adapter-libsql' || request === '@libsql/client') {
-              return callback(null, `commonjs ${request}`);
-            }
-            originalExternals(context, request, callback);
-          },
-        ];
-      } else if (typeof config.externals === 'object') {
-        config.externals['@prisma/adapter-libsql'] = 'commonjs @prisma/adapter-libsql';
-        config.externals['@libsql/client'] = 'commonjs @libsql/client';
-      }
     }
     
     return config;
