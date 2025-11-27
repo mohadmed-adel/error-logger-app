@@ -30,10 +30,10 @@ async function createUser() {
   });
 
   try {
-    const email = 'x';
+    const email = 'x@e.com';
     const password = 'x123456';
     
-    console.log('Creating user with email "x" and password "x123456"...');
+    console.log('Creating user with email "x@e.com" and password "x123456"...');
     
     // Check if user already exists
     const existingUser = await client.execute({
@@ -64,7 +64,7 @@ async function createUser() {
       });
       
       console.log('✅ User created successfully!');
-      console.log('📧 Email: x');
+      console.log('📧 Email: x@e.com');
       console.log('🔑 Password: x123456');
     }
 
