@@ -188,14 +188,35 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Handle Prisma validation errors
-    if (error?.code?.startsWith('P1') || error?.name?.includes('Prisma')) {
+    // Handle Prisma validation errors and unknown errors
+    if (error?.code?.startsWith('P1') || error?.name?.includes('Prisma') || errorName === 'PrismaClientUnknownRequestError') {
+      // For PrismaClientUnknownRequestError, try to extract more details
+      const cause = error?.cause || error?.meta || error?.clientVersion;
+      const fullError = error?.message || errorMessage;
+      
+      // Check if it's a schema/table issue
+      if (fullError?.includes('no such table') || fullError?.includes('does not exist')) {
+        return NextResponse.json(
+          { 
+            error: 'Database schema error',
+            message: 'Database tables are missing. Please run migrations: npm run db:migrate:deploy',
+            type: errorName,
+            code: errorCode,
+            details: isDevelopment ? fullError : undefined
+          },
+          { status: 500 }
+        );
+      }
+      
       return NextResponse.json(
         { 
           error: 'Database error',
-          message: isDevelopment ? errorMessage : 'A database error occurred',
+          message: isDevelopment ? fullError : 'A database error occurred. Check database connection and schema.',
           type: errorName,
-          code: errorCode
+          code: errorCode,
+          cause: isDevelopment ? cause : undefined,
+          // Include the full error message in production for debugging
+          fullMessage: fullError
         },
         { status: 500 }
       );
