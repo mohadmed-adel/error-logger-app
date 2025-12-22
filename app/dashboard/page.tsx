@@ -21,6 +21,7 @@ export default function DashboardPage() {
   const [submitting, setSubmitting] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'error' | 'warning' | 'info'>('all');
+  const [expandedStacks, setExpandedStacks] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState({
     message: '',
     stack: '',
@@ -153,6 +154,23 @@ export default function DashboardPage() {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString();
+  };
+
+  const getFirstNLines = (text: string, n: number) => {
+    const lines = text.split('\n');
+    return lines.slice(0, n).join('\n');
+  };
+
+  const toggleStackExpansion = (errorId: string) => {
+    setExpandedStacks((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(errorId)) {
+        newSet.delete(errorId);
+      } else {
+        newSet.add(errorId);
+      }
+      return newSet;
+    });
   };
 
   return (
@@ -330,9 +348,20 @@ export default function DashboardPage() {
                             </div>
                           )}
                           {error.stack && (
-                            <pre className="text-xs bg-black/10 dark:bg-white/10 p-2 rounded mt-2 overflow-x-auto">
-                              {error.stack}
-                            </pre>
+                            <div className="mt-2">
+                              <button
+                                onClick={() => toggleStackExpansion(error.id)}
+                                className="text-xs font-semibold mb-1 opacity-75 hover:opacity-100 transition-opacity flex items-center gap-1"
+                              >
+                                <span>Stack Trace:</span>
+                                <span>{expandedStacks.has(error.id) ? '▼' : '▶'}</span>
+                              </button>
+                              <pre className="text-xs bg-black/10 dark:bg-white/10 p-2 rounded overflow-x-auto font-mono">
+                                {expandedStacks.has(error.id) 
+                                  ? error.stack 
+                                  : getFirstNLines(error.stack, 3)}
+                              </pre>
+                            </div>
                           )}
                           {error.metadata && (
                             <div className="mt-2">

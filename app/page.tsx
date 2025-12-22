@@ -24,6 +24,7 @@ export default function Home() {
   const [endDate, setEndDate] = useState('');
   const [serverUrlFilter, setServerUrlFilter] = useState('');
   const [userIdFilter, setUserIdFilter] = useState('');
+  const [expandedStacks, setExpandedStacks] = useState<Set<string>>(new Set());
 
   const fetchErrors = useCallback(async () => {
     try {
@@ -138,6 +139,23 @@ export default function Home() {
     const parsed = parseMetadata(metadata);
     if (!parsed) return null;
     return JSON.stringify(parsed, null, 2);
+  };
+
+  const getFirstNLines = (text: string, n: number) => {
+    const lines = text.split('\n');
+    return lines.slice(0, n).join('\n');
+  };
+
+  const toggleStackExpansion = (errorId: string) => {
+    setExpandedStacks((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(errorId)) {
+        newSet.delete(errorId);
+      } else {
+        newSet.add(errorId);
+      }
+      return newSet;
+    });
   };
 
   return (
@@ -359,9 +377,17 @@ export default function Home() {
                         {/* Stack Trace */}
                         {error.stack && (
                           <div className="mb-2">
-                            <div className="text-xs font-semibold mb-1 opacity-75">Stack Trace:</div>
+                            <button
+                              onClick={() => toggleStackExpansion(error.id)}
+                              className="text-xs font-semibold mb-1 opacity-75 hover:opacity-100 transition-opacity flex items-center gap-1"
+                            >
+                              <span>Stack Trace:</span>
+                              <span>{expandedStacks.has(error.id) ? '▼' : '▶'}</span>
+                            </button>
                             <pre className="text-xs bg-black/10 dark:bg-white/10 p-3 rounded overflow-x-auto font-mono">
-                              {error.stack}
+                              {expandedStacks.has(error.id) 
+                                ? error.stack 
+                                : getFirstNLines(error.stack, 3)}
                             </pre>
                           </div>
                         )}
