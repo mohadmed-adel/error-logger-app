@@ -8,7 +8,7 @@ export async function OPTIONS() {
     status: 200,
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
   });
@@ -230,6 +230,69 @@ export async function POST(request: NextRequest) {
         type: errorName,
         code: isDevelopment ? errorCode : undefined,
         // Include stack trace only in development
+        ...(isDevelopment && error?.stack && { stack: error.stack })
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE - Delete a specific error by ID (Public endpoint - no authentication required)
+export async function DELETE(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Error ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Check if error exists
+    const error = await prisma.error.findUnique({
+      where: { id },
+    });
+
+    if (!error) {
+      return NextResponse.json(
+        { error: 'Error not found' },
+        { status: 404 }
+      );
+    }
+
+    // Delete the error
+    await prisma.error.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ 
+      message: 'Error deleted successfully',
+      deletedId: id 
+    });
+  } catch (error: any) {
+    console.error('Error deleting error:', error);
+    
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const errorMessage = error?.message || 'Unknown error';
+    const errorName = error?.name || 'Error';
+    
+    if (error?.code === 'P2025') {
+      return NextResponse.json(
+        { 
+          error: 'Error not found',
+          message: 'The error you are trying to delete does not exist'
+        },
+        { status: 404 }
+      );
+    }
+    
+    return NextResponse.json(
+      { 
+        error: 'Internal server error',
+        message: isDevelopment ? errorMessage : 'An error occurred while deleting the error',
+        type: errorName,
         ...(isDevelopment && error?.stack && { stack: error.stack })
       },
       { status: 500 }

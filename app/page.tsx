@@ -25,6 +25,7 @@ export default function Home() {
   const [serverUrlFilter, setServerUrlFilter] = useState('');
   const [userIdFilter, setUserIdFilter] = useState('');
   const [expandedStacks, setExpandedStacks] = useState<Set<string>>(new Set());
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
 
   const fetchErrors = useCallback(async () => {
     try {
@@ -106,6 +107,37 @@ export default function Home() {
       alert('An error occurred while clearing errors');
     } finally {
       setClearing(false);
+    }
+  };
+
+  const handleDelete = async (errorId: string) => {
+    if (!confirm('Are you sure you want to delete this error log? This action cannot be undone.')) {
+      return;
+    }
+
+    setDeletingIds((prev) => new Set(prev).add(errorId));
+    try {
+      const response = await fetch(`/api/errors/public?id=${errorId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Remove the error from the list
+        setErrors((prev) => prev.filter((error) => error.id !== errorId));
+      } else {
+        alert(data.error || 'Failed to delete error');
+      }
+    } catch (error) {
+      console.error('Error deleting error:', error);
+      alert('An error occurred while deleting the error');
+    } finally {
+      setDeletingIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(errorId);
+        return newSet;
+      });
     }
   };
 
@@ -341,7 +373,17 @@ export default function Home() {
                               {formatDate(error.createdAt)}
                             </span>
                           </div>
-                          <span className="text-xs opacity-60 font-mono">ID: {error.id}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs opacity-60 font-mono">ID: {error.id}</span>
+                            <button
+                              onClick={() => handleDelete(error.id)}
+                              disabled={deletingIds.has(error.id)}
+                              className="px-2 py-1 text-xs font-medium bg-red-600 hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed text-white rounded transition-colors"
+                              title="Delete this error"
+                            >
+                              {deletingIds.has(error.id) ? 'Deleting...' : '🗑️'}
+                            </button>
+                          </div>
                         </div>
 
                         {/* Error Message */}
