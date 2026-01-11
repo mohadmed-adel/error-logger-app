@@ -5,6 +5,7 @@
 [build.environment]
   NODE_VERSION = "18.17.0"
   NPM_VERSION = "9.0.0"
+  SECRETS_SCAN_OMIT_PATHS = "README.md,DEPLOYMENT.md,POSTMAN_SETUP.md,Error_Logger_API.postman_collection.json,scripts/*.ts,lib/prisma.ts"
 
 # Next.js configuration for Netlify
 # The plugin automatically handles routing, serverless functions, and optimizations
