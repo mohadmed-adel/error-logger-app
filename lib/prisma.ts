@@ -20,20 +20,33 @@ if (isServer && useTurso) {
   // Use Turso (libSQL adapter) - typically in production
   // Dynamically import the adapter to avoid bundling issues
   const { PrismaLibSql } = require('@prisma/adapter-libsql');
-  
+
   // Use libSQL adapter for Turso
-  const url = databaseUrl;
-  const authToken = url.includes('authToken=') 
-    ? url.split('authToken=')[1]?.split('&')[0] 
-    : undefined;
-  const dbUrl = url.split('?')[0];
-  
+  const dbUrl = databaseUrl.split('?')[0];
+
+  // Robustly extract authToken from URL or environment variables
+  let authToken: string | undefined;
+  try {
+    const url = new URL(databaseUrl);
+    authToken = url.searchParams.get('authToken') || undefined;
+  } catch (e) {
+    // If URL parsing fails, look for authToken in the string manually as fallback
+    authToken = databaseUrl.includes('authToken=')
+      ? databaseUrl.split('authToken=')[1]?.split('&')[0]
+      : undefined;
+  }
+
+  // Fallback to separate environment variables if not found in URL
+  if (!authToken) {
+    authToken = process.env.TURSO_AUTH_TOKEN || process.env.LIBSQL_AUTH_TOKEN;
+  }
+
   // Pass config directly to PrismaLibSql, not a client
   const adapter = new PrismaLibSql({
     url: dbUrl,
     authToken: authToken,
   });
-  
+
   prismaClient = new PrismaClient({
     adapter,
     log: isDevelopment ? ['query', 'error', 'warn'] : ['error'],
